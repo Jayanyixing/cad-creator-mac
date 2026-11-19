@@ -1,5 +1,5 @@
 ---
-name: autocad-mac-control
+name: cad-creator-mac
 description: 通过 Codex 电脑操作和 AutoLISP 控制 macOS 上的 Autodesk AutoCAD 桌面版。用于打开和检查当前 DWG、读取图层与实体、原生绘图和改图、另存 DWG/DXF 或从指定布局打印 PDF。适用于明确要操作 AutoCAD 的任务，兼容简体中文界面。
 ---
 

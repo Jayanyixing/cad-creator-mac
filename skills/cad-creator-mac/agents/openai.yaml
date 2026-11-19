@@ -1,0 +1,4 @@
+interface:
+  display_name: "cad-creator-mac"
+  short_description: "在 macOS 上控制 AutoCAD 读图、改图并验证 DWG 出图"
+  default_prompt: "用 $cad-creator-mac 检查当前 AutoCAD 图纸的文件名、单位和图层。"
