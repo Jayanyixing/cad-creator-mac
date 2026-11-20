@@ -24,7 +24,8 @@
 - `CADMAC-REFUSED` 表示上下文、命令空闲状态或撤销状态未满足。先核对现场再运行。
 - `CADMAC-FAILED` 或 `CADMAC-ABORTED` 说明失败或取消，可能有部分几何已写入。先回读受影响的对象。只有确认本次已产生修改，而且助手建立的组仍是最近一次可撤销操作时，才用一次 `_.U` 恢复，并回读验证。空撤销组之后的 `_.U` 可能撤销之前的工作。
 - `CADMAC-CLEANUP-FAILED` 会列出未恢复的变量、撤销组或已变化的文档上下文。先恢复正确上下文并检查现场。
+- **熔断纪律**：同类失败连续发生 3 次，或出现坐标系/文档上下文错乱时停止盲目重跑，先检查根因再决定下一步。
 
 坐标来自命令时按当前 UCS 解释。用 `(trans pt 0 1)` 把 WCS 点传给原生命令；直接读写实体时按实体类型使用对应的 WCS 或 OCS，遇到倾斜法向时先转换。已有布局、缩放和视图按任务需要保留。
 
-[Autodesk 坐标转换说明](https://help.autodesk.com/cloudhelp/2026/ESP/AutoCAD-MAC-AutoLISP-Reference/files/GUID-1A316343-0B68-4DBE-8F49-B4D601CB8FCC.htm) · [Autodesk 撤销组说明](https://help.autodesk.com/cloudhelp/2026/ENU/AutoCAD-AutoLISP/files/GUID-4481039B-77DA-4500-AE8B-3D2AD6951115.htm)
+[Autodesk 坐标转换说明](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-MAC-AutoLISP-Reference/files/GUID-1A316343-0B68-4DBE-8F49-B4D601CB8FCC.htm) · [Autodesk 撤销组说明](https://help.autodesk.com/cloudhelp/2026/ENU/AutoCAD-AutoLISP/files/GUID-4481039B-77DA-4500-AE8B-3D2AD6951115.htm)
