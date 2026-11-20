@@ -1,6 +1,6 @@
 # cad-creator-mac
 
-通过 macOS 桌面工具和 AutoLISP 控制 Autodesk AutoCAD。可检查当前 DWG、读取实体、批量绘图修改、另存 DWG/DXF 和打印 PDF。
+在 macOS 上优先使用 `cad-dxf` MCP 和 ezdxf 无界面生成、编辑和回读 DXF。需要原生 DWG、AutoCAD 三维或原生打印时，通过桌面工具和 AutoLISP 操作 AutoCAD。
 
 ## 安装
 
@@ -19,9 +19,9 @@
 
 ## 使用
 
-在 Codex 中调用 `$cad-creator-mac`，或在支持 Agent Skills 的客户端指定本技能。需要 macOS、AutoCAD 桌面版和可用的 macOS 桌面工具。先用下面的指令验证读取能力。
+在 Codex 中调用 `$cad-creator-mac`，或在支持 Agent Skills 的客户端指定本技能。常规 DXF 使用 [cad-dxf MCP 操作与安装指南](skills/cad-creator-mac/references/headless-dxf.md)。原生操作需要安装 AutoCAD 桌面版，并提供可用的 macOS 桌面操作工具。
 
-> 用 cad-creator-mac 检查当前 AutoCAD 图纸的文件名、单位和图层。
+> 用 cad-creator-mac 无界面画一块 120 × 80 mm 的板，四角各一个 Ø10 mm 孔，生成 DXF 后回读。
 
 [批量脚本](skills/cad-creator-mac/references/batch-workflow.md) · [桌面操作](skills/cad-creator-mac/references/desktop-runners.md) · [可复现用例与验证记录](tests/smoke-test.md)
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "cad-creator-mac"
-  short_description: "在 macOS 上控制 AutoCAD 读图、改图并验证 DWG 出图"
-  default_prompt: "用 $cad-creator-mac 检查当前 AutoCAD 图纸的文件名、单位和图层。"
+  short_description: "无界面生成和回读 DXF，或控制 AutoCAD 编辑原生 DWG"
+  default_prompt: "用 $cad-creator-mac 无界面生成一张带四个孔的 DXF 并回读核对。"
