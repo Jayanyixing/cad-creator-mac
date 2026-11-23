@@ -1,16 +1,17 @@
 ---
 name: cad-creator-mac
-description: 在 macOS 上用 cad-dxf MCP 和 ezdxf 无界面创建、读取、修改与审查 DXF，也可通过 AutoCAD 桌面与 AutoLISP 操作原生 DWG、三维实体和原生打印。适用于 CAD 绘图、改图与成果回读。
+description: 在 macOS 上用 cad-dxf MCP 或 ezdxf 处理 DXF，用 AutoCAD 桌面和 AutoLISP 编辑 DWG、建模与打印，或用 SketchUp MCP 创建几何体、墙体、门窗和场景并保存原生 SKP。
 license: MIT
 ---
 
-# AutoCAD for Mac 制图
+# macOS CAD 制图与 SketchUp 建模
 
 ## 选择工作方式
 
 - **常规 DXF 优先走无界面流程。** 用 [cad-dxf MCP 操作指南](references/headless-dxf.md) 创建、查询、修改和回读 DXF。先读取已存在的图纸摘要；缺少 MCP 时，沿用已可用的 `ezdxf` 环境处理 DXF。
 - **需要原生 CAD 时进入桌面流程。** 用户明确要求操作 AutoCAD，或任务需要保留 DWG 结构、创建 AutoCAD 原生三维实体、使用既有布局打印时，使用下文的 AutoCAD 桌面操作。需要从规则二维几何交付 DWG 时，可以先生成 DXF，再由 AutoCAD 打开并另存真实 DWG。
-- 确认图纸单位、修改范围、交付格式和关键尺寸。新建工程图或用户未指定完整制图规范时，按 [国标制图规范与分级验收](references/gb-drafting-standards.md) 落实幅面、线宽、图层、标注、剖视后壁轮廓与 L1–L4 验收门禁。局部改图沿用原图标准，保留无关图层、布局、块、外参和样式。先从需求记下关键几何、实体类型、语义图层及输出格式作为验收依据。
+- **SketchUp 建模或交付 SKP 时走 Ruby 桥接。** 使用 [SketchUp MCP 指南](references/sketchup-mcp.md) 核对活动模型，直接通过 `sketchup` MCP 创建几何、墙体、门窗、群组、材质与场景并保存 SKP。建模和保存通过 SketchUp Ruby API 完成。
+- CAD 工程图先确认图纸单位、修改范围、交付格式和关键尺寸。新建工程图或用户未指定完整制图规范时，按 [国标制图规范与分级验收](references/gb-drafting-standards.md) 落实幅面、线宽、图层、标注、剖视后壁轮廓与 L1–L4 验收门禁。局部改图沿用原图标准，保留无关图层、布局、块、外参和样式。先从需求记下关键几何、实体类型、语义图层及输出格式作为验收依据。
 
 ## AutoCAD 桌面操作
 
