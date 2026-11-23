@@ -21,3 +21,4 @@
 - 本次更新提供批量脚本和上述验证用例。实际批量执行、故障恢复与 PDF 出图有待在 AutoCAD 中重跑。Gemini / Antigravity 与 Hermes 的 AutoCAD 实机流程也有待分别复验。
 
 - `cad-dxf` 已用 Codex 注册的 stdio 命令实测样例创建、另存修改、回读和 ezdxf 结构审计。
+- `dxf_to_dwg.py` 已在 macOS + AutoCAD 2027（`AcCoreConsole`）实测带中文/空格/括号路径实图转存、重复覆盖写、空 DXF 边界、`/readonly` 布局/实体回读校验及零 `.log` 泄漏；亦在 Antigravity 实测通过 `System Events` + 台前调度 `batch` 驱动 AutoCAD 桌面命令行。

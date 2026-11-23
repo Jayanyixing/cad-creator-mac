@@ -1,6 +1,6 @@
 # cad-creator-mac
 
-面向 macOS 的 **AI CAD 制图与 SketchUp 建模 Agent Skill**。支持无界面 DXF、原生 AutoCAD 桌面制图以及 SketchUp Ruby API 建模。CAD 工作流内置 GB/T 国标制图规范、批量事务助手与 L1–L4 分级验收，技能可安装在 Codex、Google Antigravity、Gemini CLI 和 Hermes 等客户端。
+面向 macOS 的 **AI CAD 制图与 SketchUp 建模 Agent Skill**。支持无界面 DXF、原生 AutoCAD 桌面制图以及 SketchUp Ruby API 建模。CAD 工作流内置 GB/T 国标制图规范、批量事务助手与 L1–L4 分级验收，技能可安装在 Codex、Claude Code、Google Antigravity、Gemini CLI 和 Hermes 等客户端。
 
 ---
 
@@ -19,7 +19,7 @@
 | 常规 2D DXF 新建、查询、批量修改、结构审计 | **无界面路线**（`cad-dxf` MCP / `ezdxf`） | 无需打开 AutoCAD，执行快、纯数据回读准确 |
 | 已有 DWG 原位改图（保留布局/块/外参/样式） | **AutoCAD 桌面路线**（桌面操作 + AutoLISP） | 完整保留 DWG 原生编辑语义 |
 | 原生三维实体、复杂交互命令、原生 PDF 打印 | **AutoCAD 桌面路线**（桌面操作 + AutoLISP） | 支持线宽层次打印、中文字体与原生布局出图 |
-| 规则 2D 工程图需交付真实 DWG | **混合路线**（无界面生成 DXF → AutoCAD 另存 DWG） | 兼顾高精度生成与真实 DWG 交付 |
+| 规则 2D 工程图需交付真实 DWG | **无界面转换**（生成 DXF → `AcCoreConsole` 转 DWG） | 生成原生 DWG，并以只读模式回读单位、实体数量和布局 |
 | SketchUp 几何与房间建模、材质、场景、SKP 交付 | **SketchUp 路线**（`sketchup` MCP + SU MCP Bridge） | 直接调用 SketchUp Ruby API |
 
 ---
@@ -31,6 +31,7 @@
 | 客户端 | 用户级技能目录 |
 | :--- | :--- |
 | Codex | `~/.codex/skills/cad-creator-mac` |
+| Claude Code | `~/.claude/skills/cad-creator-mac` |
 | Google Antigravity | `~/.gemini/config/skills/cad-creator-mac` |
 | Gemini CLI | `~/.gemini/skills/cad-creator-mac` |
 | Hermes | `~/.hermes/skills/cad-creator-mac` |
@@ -58,6 +59,16 @@ cp -R cad-creator-mac/skills/cad-creator-mac ~/.codex/skills/
 
 ---
 
+## 无界面 DXF 转 DWG
+
+需要 Python 3 和带 `AcCoreConsole` 的 AutoCAD for Mac。本流程已在 AutoCAD 2027 上使用。克隆仓库后，在仓库根目录运行：
+
+```bash
+python3 skills/cad-creator-mac/scripts/dxf_to_dwg.py "输入 图纸.dxf" "输出 图纸.dwg"
+```
+
+默认保存为 DWG 2018 格式，可用 `--version` 指定其他支持的版本。省略输出路径时，脚本在输入文件旁生成同名 DWG。转换和回读通过后，脚本会替换指定路径上已有的 DWG。详见 [DXF 工作流](skills/cad-creator-mac/references/headless-dxf.md)。
+
 ## 使用示例
 
 在支持 Agent Skills 的客户端中调用 `$cad-creator-mac`，或直接说明制图和建模任务。
@@ -84,7 +95,8 @@ cad-creator-mac/
 │   ├── SKILL.md                             # 技能主入口与路由决策
 │   ├── agents/openai.yaml                   # 客户端元数据与默认提示
 │   ├── scripts/
-│   │   └── batch-task.lsp                   # AutoLISP 安全事务与撤销组助手
+│   │   ├── batch-task.lsp                   # AutoLISP 安全事务与撤销组助手
+│   │   └── dxf_to_dwg.py                    # macOS AcCoreConsole 无界面 DXF→DWG 转换与校验
 │   └── references/
 │       ├── gb-drafting-standards.md         # GB/T 国标制图规范与 L1–L4 验收
 │       ├── headless-dxf.md                  # cad-dxf MCP 与 ezdxf 无界面操作指南
