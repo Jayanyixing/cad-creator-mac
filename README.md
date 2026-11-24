@@ -1,13 +1,13 @@
 # cad-creator-mac
 
-面向 macOS 的 **AI CAD 制图与 SketchUp 建模 Agent Skill**。支持无界面 DXF、原生 AutoCAD 桌面制图以及 SketchUp Ruby API 建模。CAD 工作流内置 GB/T 国标制图规范、批量事务助手与 L1–L4 分级验收，技能可安装在 Codex、Claude Code、Google Antigravity、Gemini CLI 和 Hermes 等客户端。
+面向 macOS 的 **AI CAD 制图、SketchUp 建模与全套 Blender 5.x 3D/渲染 Agent Skill**。支持无界面 DXF、原生 AutoCAD 桌面制图、SketchUp Ruby API 建模，以及完整的 Blender 5.2+/5.3 Live MCP 操控与出图管线。CAD 工作流内置 GB/T 国标制图规范、批量事务助手与 L1–L4 分级验收，技能可安装在 Codex、Claude Code、Google Antigravity、Gemini CLI 和 Hermes 等客户端。
 
 ---
 
 ## 核心特性
 
 - **CAD 工作流**提供无界面 DXF 和 AutoCAD for Mac 桌面操作。原生 DWG 编辑保留既有样式、块和外参，亦可创建 AutoCAD 三维实体或使用原生布局打印。
-- **SketchUp MCP 与 Blender 渲染** 通过本机 Ruby 扩展创建几何、墙体、门窗、群组、材质与场景，并保存原生 SKP；支持通过 [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py) 自动导入 SKP 导出模型至 macOS Blender（Apple Silicon Metal Cycles）配置相机、物理天空、材质修补并无界面出图。
+- **SketchUp MCP 与全套 Blender 管线** 通过本机 Ruby 扩展创建几何、墙体、门窗、群组、材质与场景并保存原生 SKP；支持通过 [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py) 自动导入 SKP 导出模型至 macOS Blender（Apple Silicon Metal Cycles），同时全量内置 [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills) 的 28 个 Blender 5.2+/5.3 子技能（建模、雕刻、UV、PBR 材质、烘焙、几何节点、绑定、动画、布料、毛发、日夜天气、仿真、资产 QA 与引擎导出）与 Live MCP 联动。
 - **GB/T 国标制图内置**：涵盖幅面比例（GB/T 14689 / 14690）、图线与线宽层级（GB/T 17450）、`ByLayer` / 0 层建块铁律、标注三不原则、中文字体统一（防 `???` 与 SHX 混排）、剖视图后壁可见轮廓线规则。
 - **安全批量执行与防踩坑**：提供 [batch-task.lsp](skills/cad-creator-mac/scripts/batch-task.lsp) 事务助手，执行前校验活动文档/空间/命令空闲状态，自动包裹撤销组并恢复临时系统变量（如 `OSMODE`、`CMDECHO`）；内置防串图、防 `_AUDIT`/`_PURGE` 交互挂起、`BACKGROUNDPLOT` 同步等待等实战护栏。
 - **L1–L4 分级验收与熔断**：从脚本回执（L1）、实体数量（L2）、重开结构审计（L3）到同版 PDF 视觉交叉审查（L4）闭环把关；同类错误连续 3 次或上下文异常自动熔断排查。
@@ -21,7 +21,7 @@
 | 原生三维实体、复杂交互命令、原生 PDF 打印 | **AutoCAD 桌面路线**（桌面操作 + AutoLISP） | 支持线宽层次打印、中文字体与原生布局出图 |
 | 规则 2D 工程图需交付真实 DWG | **无界面转换**（生成 DXF → `AcCoreConsole` 转 DWG） | 生成原生 DWG，并以只读模式回读单位、实体数量和布局 |
 | SketchUp 几何与房间建模、材质、场景、SKP 交付 | **SketchUp 路线**（`sketchup` MCP + SU MCP Bridge） | 直接调用 SketchUp Ruby API |
-| SKP 导出至 Blender 配置机位/日光并出图渲染 | **Blender 路线**（`export_for_render` + [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py)） | macOS Metal GPU Cycles 无界面出图与 `.blend` 保存 |
+| SKP 导出至 Blender 或执行全套 Blender 3D/渲染任务 | **Blender 路线**（[blender_render.py](skills/cad-creator-mac/scripts/blender_render.py) + `blender-skills/` + `blender` MCP） | Live MCP（`9877`）实时操控桌面或 Metal GPU 无界面出图 |
 
 ---
 
@@ -57,7 +57,7 @@ cp -R cad-creator-mac/skills/cad-creator-mac ~/.codex/skills/
 - **无界面 DXF 路线**：已配置 `cad-dxf` MCP（基于 [id0o0bi/autocad-mcp](https://github.com/id0o0bi/autocad-mcp)）或本机可用的 Python `ezdxf` 环境。配置步骤见 [headless-dxf.md](skills/cad-creator-mac/references/headless-dxf.md)。
 - **AutoCAD 桌面路线**：macOS + Autodesk AutoCAD 桌面版（已在简体中文版 AutoCAD 2027 验证）+ 客户端可用的 macOS 桌面操作工具（如 Codex Computer Use、Antigravity `computer-use` MCP 或 Hermes `computer-use`）。
 - **SketchUp 路线**需要 SketchUp 桌面版、SU MCP Bridge Ruby 扩展及客户端配置的 `sketchup` MCP。安装、连接和建模说明见 [sketchup-mcp.md](skills/cad-creator-mac/references/sketchup-mcp.md)，已在 macOS SketchUp 2026 上验证。
-- **Blender 渲染路线**需要本机安装 Blender for Mac（已在 macOS + Blender 5.3.0 Apple M5 Metal 验证）；若需 AI 实时操控桌面 Blender 窗口，另配 `mcp-for-blender`（`uvx mcp-for-blender --port 9877`，与 SketchUp `9876` 隔离）并启用 Blender 插件。导出、Live MCP 与 Blender 5.x 核心规则见 [blender-render.md](skills/cad-creator-mac/references/blender-render.md) 和 [blender-5x-core.md](skills/cad-creator-mac/references/blender-5x-core.md)。
+- **Blender 渲染与 3D 管线**需要本机安装 Blender for Mac（已在 macOS + Blender 5.3.0 Apple M5 Metal 验证）；若需 AI 实时操控桌面 Blender 窗口，另配 `mcp-for-blender`（`uvx mcp-for-blender --port 9877`，与 SketchUp `9876` 隔离）并启用 Blender 插件。SKP 导入出图见 [blender-render.md](skills/cad-creator-mac/references/blender-render.md)，内置 28 个 Blender 子技能入口见 [blender-core](skills/cad-creator-mac/blender-skills/blender-core/SKILL.md)。
 
 ---
 
@@ -103,12 +103,17 @@ cad-creator-mac/
 │   │   ├── batch-task.lsp                   # AutoLISP 安全事务与撤销组助手
 │   │   ├── dxf_to_dwg.py                    # macOS AcCoreConsole 无界面 DXF→DWG 转换与校验
 │   │   └── blender_render.py                # macOS Blender 导入、相机/天空控制与 Metal Cycles 出图
+│   ├── blender-skills/                      # 内置 EL4CTEO/blender-skills 全套 28 个 Blender 5.2+/5.3 子技能（MIT）
+│   │   ├── blender-core/                    # 入口调度、run_in_blender.py、env_report.py 与 5.x API 速查
+│   │   ├── blender-rendering/               # Cycles/EEVEE 批量渲染与合成器
+│   │   ├── blender-lighting-lookdev/        # 布光、转台与相机规范
+│   │   ├── blender-asset-qa/                # 几何/法线/UV/贴图自动化检查与预览表
+│   │   └── ...                              # 其余 24 个专项子技能（建模/材质/节点/绑定/动画/仿真/导出等）
 │   └── references/
 │       ├── gb-drafting-standards.md         # GB/T 国标制图规范与 L1–L4 验收
 │       ├── headless-dxf.md                  # cad-dxf MCP 与 ezdxf 无界面操作指南
 │       ├── sketchup-mcp.md                   # SketchUp Ruby 桥接、建模与 SKP 保存
 │       ├── blender-render.md                # SKP → Blender 导出、Live MCP 与渲染控制
-│       ├── blender-5x-core.md               # Blender 5.2+/5.3 bpy 规则、API 变更与 QA 门禁
 │       ├── desktop-runners.md               # Codex / Antigravity / Hermes 桌面操作适配
 │       ├── batch-workflow.md                # 批量脚本、故障恢复与熔断纪律
 │       └── autocad-operations.md            # AutoLISP 实体读写、中文字体、线型与出图

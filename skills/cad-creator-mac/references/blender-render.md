@@ -1,6 +1,6 @@
 # SKP 到 Blender 导入、实时 MCP 控制与渲染
 
-支持两套无缝衔接的执行方式：**Live 实时操控桌面 Blender（`blender` MCP）** 与 **无界面后台出图（`blender_render.py`）**。Blender 5.x `bpy` 语法避坑与灯光/QA 门禁见 [Blender 5.x 核心规范](blender-5x-core.md)。
+支持两套无缝衔接的执行方式：**Live 实时操控桌面 Blender（`blender` MCP）** 与 **无界面后台出图（`blender_render.py`）**。更完整的建模/材质/动画/QA 等 28 个子技能已全量内置在 [blender-skills/](../blender-skills/)，入口与 5.x API 规则见 [blender-core](../blender-skills/blender-core/SKILL.md) 与 [api-changes-5x.md](../blender-skills/blender-core/references/api-changes-5x.md)。
 
 ## 1. 本地 MCP 环境与防冲突配置
 
@@ -56,8 +56,9 @@ python3 <skill_dir>/scripts/blender_render.py "/path/to/scene.blend" \
 - 常用参数：`--info`、`--camera <名称|auto|birdseye>`、`--engine CYCLES|BLENDER_EEVEE`、`--samples`、`--width` / `--height`、`--exposure`、`--sky-strength`、`--no-sky`。
 - 若需桌面人工继续调整，运行 `open -a Blender /path/to/scene.blend`；Blender 打开后 MCP `9877` 会自动连上。
 
-## 5. 验收核对
+## 5. 验收核对与全套子技能路由
 
 - 自检：`python3 <skill_dir>/scripts/blender_render.py --self-test` 返回 `SELF_TEST_OK`。
-- 数据回读：核对 `BLENDER_OK:` JSON（网格/材质/相机/边界框/是否命中 `METAL`）或 Live `get_scene_info`。
-- 视觉检查：Live 模式用 `look`，无界面出图直接看 PNG，按 [Blender 5.x 核心规范](blender-5x-core.md) 核查曝光、构图、法线、贴图与背景。
+- 数据回读：核对 `BLENDER_OK:` JSON（网格/材质/相机/边界框/是否命中 `METAL`）或 Live `get_scene_info` / `blender-skills/blender-core/scripts/env_report.py`。
+- 视觉检查：Live 模式用 `look`，无界面出图直接看 PNG（或调用 `blender-skills/blender-asset-qa/scripts/qa_check.py` 与 `review_shots.py` 做几何/法线/UV/贴图审计）。
+- 需要细分任务（如 `blender-pbr-materials`、`blender-lighting-lookdev`、`blender-time-of-day`、`blender-geometry-nodes`、`blender-rendering` 等）时，从 [blender-core](../blender-skills/blender-core/SKILL.md) 按表路由加载对应子技能；运行其内置脚本时以 `<skill_dir>/blender-skills` 作为 `<skills_dir>`。
