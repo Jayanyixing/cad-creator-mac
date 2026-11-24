@@ -7,7 +7,7 @@
 ## 核心特性
 
 - **CAD 工作流**提供无界面 DXF 和 AutoCAD for Mac 桌面操作。原生 DWG 编辑保留既有样式、块和外参，亦可创建 AutoCAD 三维实体或使用原生布局打印。
-- **SketchUp MCP** 通过本机 Ruby 扩展创建几何、墙体、门窗、群组、材质与场景，并保存原生 SKP。
+- **SketchUp MCP 与 Blender 渲染** 通过本机 Ruby 扩展创建几何、墙体、门窗、群组、材质与场景，并保存原生 SKP；支持通过 [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py) 自动导入 SKP 导出模型至 macOS Blender（Apple Silicon Metal Cycles）配置相机、物理天空、材质修补并无界面出图。
 - **GB/T 国标制图内置**：涵盖幅面比例（GB/T 14689 / 14690）、图线与线宽层级（GB/T 17450）、`ByLayer` / 0 层建块铁律、标注三不原则、中文字体统一（防 `???` 与 SHX 混排）、剖视图后壁可见轮廓线规则。
 - **安全批量执行与防踩坑**：提供 [batch-task.lsp](skills/cad-creator-mac/scripts/batch-task.lsp) 事务助手，执行前校验活动文档/空间/命令空闲状态，自动包裹撤销组并恢复临时系统变量（如 `OSMODE`、`CMDECHO`）；内置防串图、防 `_AUDIT`/`_PURGE` 交互挂起、`BACKGROUNDPLOT` 同步等待等实战护栏。
 - **L1–L4 分级验收与熔断**：从脚本回执（L1）、实体数量（L2）、重开结构审计（L3）到同版 PDF 视觉交叉审查（L4）闭环把关；同类错误连续 3 次或上下文异常自动熔断排查。
@@ -21,6 +21,7 @@
 | 原生三维实体、复杂交互命令、原生 PDF 打印 | **AutoCAD 桌面路线**（桌面操作 + AutoLISP） | 支持线宽层次打印、中文字体与原生布局出图 |
 | 规则 2D 工程图需交付真实 DWG | **无界面转换**（生成 DXF → `AcCoreConsole` 转 DWG） | 生成原生 DWG，并以只读模式回读单位、实体数量和布局 |
 | SketchUp 几何与房间建模、材质、场景、SKP 交付 | **SketchUp 路线**（`sketchup` MCP + SU MCP Bridge） | 直接调用 SketchUp Ruby API |
+| SKP 导出至 Blender 配置机位/日光并出图渲染 | **Blender 路线**（`export_for_render` + [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py)） | macOS Metal GPU Cycles 无界面出图与 `.blend` 保存 |
 
 ---
 
@@ -56,6 +57,7 @@ cp -R cad-creator-mac/skills/cad-creator-mac ~/.codex/skills/
 - **无界面 DXF 路线**：已配置 `cad-dxf` MCP（基于 [id0o0bi/autocad-mcp](https://github.com/id0o0bi/autocad-mcp)）或本机可用的 Python `ezdxf` 环境。配置步骤见 [headless-dxf.md](skills/cad-creator-mac/references/headless-dxf.md)。
 - **AutoCAD 桌面路线**：macOS + Autodesk AutoCAD 桌面版（已在简体中文版 AutoCAD 2027 验证）+ 客户端可用的 macOS 桌面操作工具（如 Codex Computer Use、Antigravity `computer-use` MCP 或 Hermes `computer-use`）。
 - **SketchUp 路线**需要 SketchUp 桌面版、SU MCP Bridge Ruby 扩展及客户端配置的 `sketchup` MCP。安装、连接和建模说明见 [sketchup-mcp.md](skills/cad-creator-mac/references/sketchup-mcp.md)，已在 macOS SketchUp 2026 上验证。
+- **Blender 渲染路线**需要本机安装 Blender for Mac（已在 macOS + Blender 5.3.0 Apple M5 Metal 验证）。导出与渲染控制说明见 [blender-render.md](skills/cad-creator-mac/references/blender-render.md)。
 
 ---
 
@@ -85,6 +87,9 @@ python3 skills/cad-creator-mac/scripts/dxf_to_dwg.py "输入 图纸.dxf" "输出
 4. **SketchUp 建模并保存 SKP**
    > 用 `cad-creator-mac` 在 SketchUp 里建一个 4000 × 3200 mm 的房间，加一扇门和一扇窗，分配材质，创建平面与透视场景后另存 SKP。
 
+5. **SKP 导出至 Blender 并使用 Metal Cycles 渲染**
+   > 用 `cad-creator-mac` 把桌面的 `.skp` 模型导出并导入 Blender，启用 Apple Silicon Metal 加速与物理天空，保存 `.blend` 并渲染输出原视角与鸟瞰视角效果图。
+
 ---
 
 ## 仓库结构
@@ -96,11 +101,13 @@ cad-creator-mac/
 │   ├── agents/openai.yaml                   # 客户端元数据与默认提示
 │   ├── scripts/
 │   │   ├── batch-task.lsp                   # AutoLISP 安全事务与撤销组助手
-│   │   └── dxf_to_dwg.py                    # macOS AcCoreConsole 无界面 DXF→DWG 转换与校验
+│   │   ├── dxf_to_dwg.py                    # macOS AcCoreConsole 无界面 DXF→DWG 转换与校验
+│   │   └── blender_render.py                # macOS Blender 导入、相机/天空控制与 Metal Cycles 出图
 │   └── references/
 │       ├── gb-drafting-standards.md         # GB/T 国标制图规范与 L1–L4 验收
 │       ├── headless-dxf.md                  # cad-dxf MCP 与 ezdxf 无界面操作指南
 │       ├── sketchup-mcp.md                   # SketchUp Ruby 桥接、建模与 SKP 保存
+│       ├── blender-render.md                # SKP → Blender 导出、材质修正与渲染控制
 │       ├── desktop-runners.md               # Codex / Antigravity / Hermes 桌面操作适配
 │       ├── batch-workflow.md                # 批量脚本、故障恢复与熔断纪律
 │       └── autocad-operations.md            # AutoLISP 实体读写、中文字体、线型与出图

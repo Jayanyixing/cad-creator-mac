@@ -18,5 +18,6 @@
 1. 修改前通过 `model_info` 核对模型路径和修改状态；用户指定选择集时加查 `selection_info`。新建任务使用独立空白模型。工具的长度输入为 mm，即使模型界面显示的单位不同。
 2. 基本几何用 `create_box`、`create_shape` 或 `create_lines`。`create_room` 可根据室内边界生成墙板与地面，并按墙边位置、宽高和窗台标高切门窗洞与建门窗。用 `make_group` 组织对象，`set_material` 赋材质，`create_scenes` 建平面、立面或透视场景。引用对象时使用工具本次返回的 ID。专用工具无法表达的编辑可通过 `run_ruby` 调用原生 API，建模过程使用 MCP 或 Ruby API。
 3. 新文件或副本使用 `save_model` 并传入尚不存在的 `.skp` 绝对路径。用户要求原位保存时，先核对活动模型的完整路径。保存后核对返回路径和实际文件，按任务回读场景、对象、尺寸或洞口，必要时用 `screenshot` 检查结果。
+4. **交付 Blender 渲染**：调用 `export_for_render` 导出 OBJ/贴图与相机灯光 JSON 后，使用 [Blender 渲染指南](blender-render.md) 中的 `blender_render.py` 启用 Metal GPU 渲染；数百 MB 级大模型建议先设 `SKETCHUP_MCP_TIMEOUT=600`。
 
 已用 SketchUp 2026（26.0.428）和 SU MCP Bridge 1.6.0 附带的 Node.js 服务实测房间墙板、门窗、实体方块、群组、材质、场景、视图截图及原生 SKP 保存与回读。

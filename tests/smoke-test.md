@@ -22,3 +22,11 @@
 
 - `cad-dxf` 已用 Codex 注册的 stdio 命令实测样例创建、另存修改、回读和 ezdxf 结构审计。
 - `dxf_to_dwg.py` 已在 macOS + AutoCAD 2027（`AcCoreConsole`）实测带中文/空格/括号路径实图转存、重复覆盖写、空 DXF 边界、`/readonly` 布局/实体回读校验及零 `.log` 泄漏；亦在 Antigravity 实测通过 `System Events` + 台前调度 `batch` 驱动 AutoCAD 桌面命令行。
+
+## SKP → Blender 渲染用例
+
+- **脚本自检**：运行 `python3 skills/cad-creator-mac/scripts/blender_render.py --self-test` 返回 `SELF_TEST_OK`。
+- **实测模型**：已在 macOS 27.3（Apple M5）+ SketchUp 2026（26.0.428 / SU MCP Bridge 1.6.0）+ Blender 5.3.0 上以 374 MB 建筑组团实图完成闭环验证：
+  - 通过 Bridge `127.0.0.1:9876` 执行 `export_for_render` 导出米制 OBJ（682 MiB / 4297 贴图 / 27568 继承材质面烘焙）与相机 JSON；
+  - `blender_render.py` 用时 6.9s 导入 762 万面 / 4331 材质，自动启用 `METAL:Apple M5 (GPU - 8 cores)`、修复材质 `Kd` 与玻璃/水体粗糙度、配置 `SINGLE_SCATTERING` 物理天空与下半球背景填充并保存 `.blend`；
+  - 验证默认视角、`--camera birdseye` 与 `--eye/--target` 自定义中庭视角 Cycles 渲染（1600px / 48–64 采样，约 10–18s 出图）及 `--info` 只读回读。
