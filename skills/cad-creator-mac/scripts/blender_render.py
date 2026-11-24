@@ -85,21 +85,22 @@ def _self_test() -> None:
     print("SELF_TEST_OK")
 
 
-def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> None:
+def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
     import bpy
     from mathutils import Matrix, Vector
 
-    src = args.input.resolve()
-    if not src.is_file():
+    src = args.input.resolve() if args.input else None
+    if src is not None and not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src}")
-    if not args.info and not args.output and not args.save_blend:
+    if src is not None and not args.info and not args.output and not args.save_blend:
         raise ValueError("Specify at least one of --output, --save-blend, or --info")
 
-    ext = src.suffix.lower()
+    ext = src.suffix.lower() if src else ""
     is_blend = ext == ".blend"
+    is_live = src is None
     if is_blend:
         bpy.ops.wm.open_mainfile(filepath=str(src))
-    else:
+    elif not is_live:
         kind = IMPORT_HANDLERS.get(ext)
         if not kind:
             raise ValueError(f"Unsupported format {ext!r}; use .blend or {sorted(IMPORT_HANDLERS)}")
@@ -117,8 +118,8 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> None:
     if ext == ".obj":
         _tune_obj_materials(bpy)
 
-    cams_path = args.cameras or (src.with_name(f"{src.stem}_cameras.json") if ext == ".obj" else None)
-    lights_path = args.lights or (src.with_name(f"{src.stem}_lights.json") if ext == ".obj" else None)
+    cams_path = args.cameras or (src.with_name(f"{src.stem}_cameras.json") if (src and ext == ".obj") else None)
+    lights_path = args.lights or (src.with_name(f"{src.stem}_lights.json") if (src and ext == ".obj") else None)
 
     aspect = None
     if cams_path and cams_path.is_file():
@@ -138,9 +139,10 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> None:
     _apply_camera_clipping(sc, diag)
 
     sky_flags = {"--sky-strength", "--sun-elevation", "--sun-rotation"}
-    if not args.no_sky and (not is_blend or any(f in raw_argv for f in sky_flags)):
+    preserve_world = is_blend or (is_live and sc.world is not None)
+    if not args.no_sky and (not preserve_world or any(f in raw_argv for f in sky_flags)):
         _setup_sky_world(bpy, sc, args.sun_elevation, args.sun_rotation, args.sky_strength)
-    elif not is_blend and sc.world is None:
+    elif not preserve_world and sc.world is None:
         w = bpy.data.worlds.new("World")
         if w.node_tree is None:
             w.use_nodes = True
@@ -162,7 +164,7 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> None:
         bpy.ops.render.render(write_still=True)
 
     summary = {
-        "input": str(src),
+        "input": str(src) if src else "(live scene)",
         "objects": len(bpy.data.objects),
         "meshes": sum(1 for o in bpy.data.objects if o.type == "MESH"),
         "materials": len(bpy.data.materials),
@@ -180,6 +182,7 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> None:
         "output": str(args.output.resolve()) if (not args.info and args.output) else None,
     }
     print("BLENDER_OK:", json.dumps(summary, ensure_ascii=False))
+    return summary
 
 
 def _tune_obj_materials(bpy) -> None:
@@ -389,6 +392,8 @@ def _configure_render(bpy, sc, engine: str, samples: int, width: int, height: in
     device_used = "CPU"
     if engine == "CYCLES":
         sc.cycles.samples = samples
+        sc.cycles.use_adaptive_sampling = True
+        sc.cycles.adaptive_threshold = 0.02 if samples >= 64 else 0.05
         sc.cycles.use_denoising = True
         try:
             prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -402,6 +407,8 @@ def _configure_render(bpy, sc, engine: str, samples: int, width: int, height: in
                 device_used = f"METAL:{metal_devs[0].name}"
         except Exception:
             sc.cycles.device = "CPU"
+    elif engine == "BLENDER_EEVEE" and hasattr(sc.eevee, "use_raytracing"):
+        sc.eevee.use_raytracing = True
     for vt in ("AgX", "Filmic"):
         try:
             sc.view_settings.view_transform = vt
@@ -414,12 +421,30 @@ def _configure_render(bpy, sc, engine: str, samples: int, width: int, height: in
     return device_used
 
 
+def run(input_path: str | Path | None = None, **kwargs) -> dict:
+    """In-Blender entry point (for live blender-mcp execute_blender_code calls)."""
+    ns = parse_args([])
+    ns.input = Path(input_path) if input_path else None
+    for path_key in ("output", "save_blend", "cameras", "lights"):
+        if kwargs.get(path_key) is not None:
+            kwargs[path_key] = Path(kwargs[path_key])
+    raw_argv = []
+    for k, v in kwargs.items():
+        if not hasattr(ns, k):
+            raise ValueError(f"Unknown option {k!r}")
+        setattr(ns, k, v)
+        raw_argv.append(f"--{k.replace('_', '-')}")
+    return _run_in_blender(ns, raw_argv)
+
+
 def main() -> None:
     if "bpy" not in sys.modules:
         args = parse_args(sys.argv[1:])
         if args.self_test:
             _self_test()
             return
+        if args.input is None:
+            raise SystemExit("error: input file is required when running from CLI")
         blender = find_blender()
         proc = subprocess.run([blender, "-b", "--python", str(Path(__file__).resolve()), "--", *sys.argv[1:]])
         sys.exit(proc.returncode)

@@ -30,3 +30,4 @@
   - 通过 Bridge `127.0.0.1:9876` 执行 `export_for_render` 导出米制 OBJ（682 MiB / 4297 贴图 / 27568 继承材质面烘焙）与相机 JSON；
   - `blender_render.py` 用时 6.9s 导入 762 万面 / 4331 材质，自动启用 `METAL:Apple M5 (GPU - 8 cores)`、修复材质 `Kd` 与玻璃/水体粗糙度、配置 `SINGLE_SCATTERING` 物理天空与下半球背景填充并保存 `.blend`；
   - 验证默认视角、`--camera birdseye` 与 `--eye/--target` 自定义中庭视角 Cycles 渲染（1600px / 48–64 采样，约 10–18s 出图）及 `--info` 只读回读。
+- **Live MCP 双端并发**：已在 SketchUp 2026（`127.0.0.1:9876`）持续运行的同时，实测打开 Blender 5.3.0 桌面端自动监听 `127.0.0.1:9877`（`blender_mcp.py`），并通过 `uvx mcp-for-blender --port 9877` 完成 `get_scene_info` 与 `execute_blender_code` 实机调用。

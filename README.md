@@ -57,7 +57,7 @@ cp -R cad-creator-mac/skills/cad-creator-mac ~/.codex/skills/
 - **无界面 DXF 路线**：已配置 `cad-dxf` MCP（基于 [id0o0bi/autocad-mcp](https://github.com/id0o0bi/autocad-mcp)）或本机可用的 Python `ezdxf` 环境。配置步骤见 [headless-dxf.md](skills/cad-creator-mac/references/headless-dxf.md)。
 - **AutoCAD 桌面路线**：macOS + Autodesk AutoCAD 桌面版（已在简体中文版 AutoCAD 2027 验证）+ 客户端可用的 macOS 桌面操作工具（如 Codex Computer Use、Antigravity `computer-use` MCP 或 Hermes `computer-use`）。
 - **SketchUp 路线**需要 SketchUp 桌面版、SU MCP Bridge Ruby 扩展及客户端配置的 `sketchup` MCP。安装、连接和建模说明见 [sketchup-mcp.md](skills/cad-creator-mac/references/sketchup-mcp.md)，已在 macOS SketchUp 2026 上验证。
-- **Blender 渲染路线**需要本机安装 Blender for Mac（已在 macOS + Blender 5.3.0 Apple M5 Metal 验证）。导出与渲染控制说明见 [blender-render.md](skills/cad-creator-mac/references/blender-render.md)。
+- **Blender 渲染路线**需要本机安装 Blender for Mac（已在 macOS + Blender 5.3.0 Apple M5 Metal 验证）；若需 AI 实时操控桌面 Blender 窗口，另配 `mcp-for-blender`（`uvx mcp-for-blender --port 9877`，与 SketchUp `9876` 隔离）并启用 Blender 插件。导出、Live MCP 与 Blender 5.x 核心规则见 [blender-render.md](skills/cad-creator-mac/references/blender-render.md) 和 [blender-5x-core.md](skills/cad-creator-mac/references/blender-5x-core.md)。
 
 ---
 
@@ -107,7 +107,8 @@ cad-creator-mac/
 │       ├── gb-drafting-standards.md         # GB/T 国标制图规范与 L1–L4 验收
 │       ├── headless-dxf.md                  # cad-dxf MCP 与 ezdxf 无界面操作指南
 │       ├── sketchup-mcp.md                   # SketchUp Ruby 桥接、建模与 SKP 保存
-│       ├── blender-render.md                # SKP → Blender 导出、材质修正与渲染控制
+│       ├── blender-render.md                # SKP → Blender 导出、Live MCP 与渲染控制
+│       ├── blender-5x-core.md               # Blender 5.2+/5.3 bpy 规则、API 变更与 QA 门禁
 │       ├── desktop-runners.md               # Codex / Antigravity / Hermes 桌面操作适配
 │       ├── batch-workflow.md                # 批量脚本、故障恢复与熔断纪律
 │       └── autocad-operations.md            # AutoLISP 实体读写、中文字体、线型与出图
