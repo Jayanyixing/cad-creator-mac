@@ -7,7 +7,7 @@
 1. 新图确认实际单位、原点、尺寸和所需版本。旧图先用 `drawing_summary(path=绝对路径)` 读取版本、单位、图层和实体摘要，再按句柄、图层或几何条件限定修改范围。
 2. 用 `drawing_run` 批量执行一段 Python。作用域已有 `doc`、`msp`、`ezdxf` 和 `emit`。`path` 为空时创建新图。编辑时 `path` 指向已有 DXF，`save_as` 指向约定的结果文件。仅查询时省略 `save_as`。默认新建 R2010；写入较旧版本前核对实体支持。`drawing_run` 可以执行 Python，只传当前任务需要的受控代码。
 3. 保存后用新一次 `drawing_summary` 或查询调用读回结果。关键尺寸、坐标、孔径、闭合性和原生标注从保存后的数据求值。可用 `doc.audit()` 检查结构，若有错误或内存修复，先核对再决定是否保存修复结果。需要展示效果时，再按用途检查线宽、文字、裁切和显示比例。
-4. 规则 DXF 交付原生 DWG 时，直接运行 `/usr/bin/python3 <skill_dir>/scripts/dxf_to_dwg.py <输入.dxf> <输出.dwg>`（自动用临时 ASCII 目录隔离中文/空格路径与 `.log`，不启动桌面 UI、不抢焦点、默认用 `AcCoreConsole /readonly` 回读实体与布局核对）。已有复杂 DWG 编辑、原生 AutoCAD 三维或交互出图时再走桌面流程。
+4. 规则 DXF 交付原生 DWG 时，直接运行 `/usr/bin/python3 <skill_dir>/scripts/dxf_to_dwg.py <输入.dxf> <输出.dwg>`（自动用临时 ASCII 目录隔离中文/空格路径与 `.log`，不启动桌面 UI、不抢焦点、默认回读源图及输出 DWG，核对单位与布局名称，返回实体计数。回读通过后在目标磁盘原子替换 .dwg 文件）。已有复杂 DWG 编辑、原生 AutoCAD 三维或交互出图时再走桌面流程。
 
 下面的 `code` 示例对应一张 120 × 80 mm 的板和四个 Ø10 mm 的孔。调用 `drawing_run` 时另传 `save_as` 为实际输出路径。
 

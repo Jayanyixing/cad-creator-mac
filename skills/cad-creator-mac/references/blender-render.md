@@ -33,6 +33,8 @@
   # 或直接对桌面已打开场景切换鸟瞰/调日光并渲染：
   blender_render.run(camera="birdseye", sun_elevation=24, output="/path/to/out.png")
   ```
+  Live 中导入 OBJ、glTF、FBX 或 USD 默认追加到当前场景。单独查询当前场景用 `blender_render.run(info=True)`，查询指定文件会在独立后台进程读取。只有任务明确要求替换当前工程且已妥善保存工作时，传 `replace_scene=True`；Live 中打开另一份 .blend 也需要这一参数。
+
   每次 `execute_blender_code` 都在新命名空间执行，按需 `import`；改过脚本文件后加 `importlib.reload(blender_render)`；调 `look` 检查视口结果。
 
 ## 4. 无界面控制命令（`blender_render.py`）
@@ -60,5 +62,5 @@ python3 <skill_dir>/scripts/blender_render.py "/path/to/scene.blend" \
 
 - 自检：`python3 <skill_dir>/scripts/blender_render.py --self-test` 返回 `SELF_TEST_OK`。
 - 数据回读：核对 `BLENDER_OK:` JSON（网格/材质/相机/边界框/是否命中 `METAL`）或 Live `get_scene_info` / `blender-skills/blender-core/scripts/env_report.py`。
-- 视觉检查：Live 模式用 `look`，无界面出图直接看 PNG（或调用 `blender-skills/blender-asset-qa/scripts/qa_check.py` 与 `review_shots.py` 做几何/法线/UV/贴图审计）。
+- 视觉检查：Live 模式用 `look`，批量出图先确认进程退出码为 0，再打开本轮 PNG（或调用 `blender-skills/blender-asset-qa/scripts/qa_check.py` 与 `review_shots.py` 做几何/法线/UV/贴图审计）。
 - 需要细分任务（如 `blender-pbr-materials`、`blender-lighting-lookdev`、`blender-time-of-day`、`blender-geometry-nodes`、`blender-rendering` 等）时，从 [blender-core](../blender-skills/blender-core/SKILL.md) 按表路由加载对应子技能；运行其内置脚本时以 `<skill_dir>/blender-skills` 作为 `<skills_dir>`。

@@ -87,38 +87,57 @@ def _self_test() -> None:
     print("SELF_TEST_OK")
 
 
-def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
+def _run_in_blender(args: argparse.Namespace, raw_argv: list[str], *, live=False, replace_scene=False) -> dict:
     import bpy
     from mathutils import Matrix, Vector
 
     src = args.input.resolve() if args.input else None
     if src is not None and not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src}")
-    if src is not None and not args.info and not args.output and not args.save_blend:
+    if args.info and args.save_blend:
+        raise ValueError("--info is read-only; run --save-blend separately")
+    if src is not None and not live and not args.info and not args.output and not args.save_blend:
         raise ValueError("Specify at least one of --output, --save-blend, or --info")
 
     ext = src.suffix.lower() if src else ""
     is_blend = ext == ".blend"
-    is_live = src is None
+    if live and src and args.info:
+        # Inspect external files in their own process, without touching the artist's session.
+        proc = subprocess.run(_blender_command(bpy.app.binary_path, [str(src), "--info"]),
+                              capture_output=True, text=True)
+        if proc.returncode:
+            raise RuntimeError(f"Blender inspection failed: {proc.stderr[-1200:]}")
+        for line in proc.stdout.splitlines():
+            if line.startswith("BLENDER_OK: "):
+                return json.loads(line.removeprefix("BLENDER_OK: "))
+        raise RuntimeError("Blender inspection returned no scene summary")
     if is_blend:
-        bpy.ops.wm.open_mainfile(filepath=str(src))
-    elif not is_live:
+        if live and not replace_scene:
+            raise ValueError("Opening a .blend replaces the session; use replace_scene=True to open it")
+        _require_finished(bpy.ops.wm.open_mainfile(filepath=str(src)), f"open {src}")
+    elif src is not None:
         kind = IMPORT_HANDLERS.get(ext)
         if not kind:
             raise ValueError(f"Unsupported format {ext!r}; use .blend or {sorted(IMPORT_HANDLERS)}")
-        bpy.ops.wm.read_factory_settings(use_empty=True)
+        if not live or replace_scene:
+            bpy.ops.wm.read_factory_settings(use_empty=True)
+        existing_materials = set(bpy.data.materials)
         if kind == "obj":
-            bpy.ops.wm.obj_import(filepath=str(src))
+            status = bpy.ops.wm.obj_import(filepath=str(src))
         elif kind == "gltf":
-            bpy.ops.import_scene.gltf(filepath=str(src))
+            status = bpy.ops.import_scene.gltf(filepath=str(src))
         elif kind == "fbx":
-            bpy.ops.import_scene.fbx(filepath=str(src))
+            status = bpy.ops.import_scene.fbx(filepath=str(src))
         elif kind == "usd":
-            bpy.ops.wm.usd_import(filepath=str(src))
+            status = bpy.ops.wm.usd_import(filepath=str(src))
+        _require_finished(status, f"import {src}")
 
     sc = bpy.context.scene
+    bounds = _scene_bounds(sc, Vector)
+    if args.info:
+        return _scene_summary(bpy, sc, src, args, bounds)
     if ext == ".obj":
-        _tune_obj_materials(bpy)
+        _tune_obj_materials(set(bpy.data.materials) - existing_materials)
 
     cams_path = args.cameras or (src.with_name(f"{src.stem}_cameras.json") if (src and ext == ".obj") else None)
     lights_path = args.lights or (src.with_name(f"{src.stem}_lights.json") if (src and ext == ".obj") else None)
@@ -129,7 +148,13 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
     if lights_path and lights_path.is_file():
         _load_lights(bpy, sc, lights_path)
 
-    bounds_min, bounds_max = _scene_bounds(bpy, Vector)
+    # A plain Live import appends geometry without reconfiguring the existing camera or renderer.
+    if live and src and not replace_scene and set(raw_argv) <= {"--save-blend", "--cameras", "--lights"}:
+        if args.save_blend:
+            _save_scene(bpy, args.save_blend)
+        return _scene_summary(bpy, sc, src, args, bounds)
+
+    bounds_min, bounds_max = bounds
     diag = (bounds_max - bounds_min).length if bounds_min is not None else 100.0
     _ensure_birdseye_camera(bpy, sc, bounds_min, bounds_max, Matrix, Vector)
     if args.eye and args.target:
@@ -141,7 +166,7 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
     _apply_camera_clipping(sc, diag)
 
     sky_flags = {"--sky-strength", "--sun-elevation", "--sun-rotation"}
-    preserve_world = is_blend or (is_live and sc.world is not None)
+    preserve_world = is_blend or (live and not replace_scene and sc.world is not None)
     if not args.no_sky and (not preserve_world or any(f in raw_argv for f in sky_flags)):
         _setup_sky_world(bpy, sc, args.sun_elevation, args.sun_rotation, args.sky_strength)
     elif not preserve_world and sc.world is None:
@@ -154,31 +179,46 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
     device_used = _configure_render(bpy, sc, args.engine, args.samples, args.width, args.height, aspect, args.exposure)
 
     if args.save_blend:
-        blend_out = args.save_blend.resolve()
-        blend_out.parent.mkdir(parents=True, exist_ok=True)
-        bpy.ops.wm.save_as_mainfile(filepath=str(blend_out))
+        _save_scene(bpy, args.save_blend)
 
-    if not args.info and args.output:
+    if args.output:
         png_out = args.output.resolve()
         png_out.parent.mkdir(parents=True, exist_ok=True)
         sc.render.image_settings.file_format = "PNG"
         sc.render.filepath = str(png_out)
-        bpy.ops.render.render(write_still=True)
+        _require_finished(bpy.ops.render.render(write_still=True), f"render {png_out}")
 
+    return _scene_summary(bpy, sc, src, args, bounds, device_used)
+
+
+def _require_finished(status, operation):
+    if "FINISHED" not in status:
+        raise RuntimeError(f"Failed to {operation}: {status}")
+
+
+def _save_scene(bpy, path):
+    path = path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _require_finished(bpy.ops.wm.save_as_mainfile(filepath=str(path)), f"save {path}")
+
+
+def _scene_summary(bpy, sc, src, args, bounds, device=None):
+    bounds_min, bounds_max = bounds
+    cycles = sc.render.engine == "CYCLES"
     summary = {
         "input": str(src) if src else "(live scene)",
-        "objects": len(bpy.data.objects),
-        "meshes": sum(1 for o in bpy.data.objects if o.type == "MESH"),
+        "objects": len(sc.objects),
+        "meshes": sum(1 for o in sc.objects if o.type == "MESH"),
         "materials": len(bpy.data.materials),
-        "cameras": [o.name for o in bpy.data.objects if o.type == "CAMERA"],
+        "cameras": [o.name for o in sc.objects if o.type == "CAMERA"],
         "active_camera": sc.camera.name if sc.camera else None,
         "bounds_m": {
             "min": [round(v, 2) for v in bounds_min] if bounds_min else None,
             "max": [round(v, 2) for v in bounds_max] if bounds_max else None,
         },
         "engine": sc.render.engine,
-        "device": device_used,
-        "samples": args.samples,
+        "device": device or (sc.cycles.device if cycles else None),
+        "samples": sc.cycles.samples if cycles else None,
         "resolution": [sc.render.resolution_x, sc.render.resolution_y],
         "blend": str(args.save_blend.resolve()) if args.save_blend else None,
         "output": str(args.output.resolve()) if (not args.info and args.output) else None,
@@ -187,9 +227,9 @@ def _run_in_blender(args: argparse.Namespace, raw_argv: list[str]) -> dict:
     return summary
 
 
-def _tune_obj_materials(bpy) -> None:
+def _tune_obj_materials(materials) -> None:
     """Fix SketchUp OBJ sRGB Kd colors, default 1.0 roughness, and architectural glass/water."""
-    for m in bpy.data.materials:
+    for m in materials:
         nt = getattr(m, "node_tree", None)
         if not nt:
             continue
@@ -278,9 +318,9 @@ def _load_lights(bpy, sc, lights_path: Path) -> None:
         coll.objects.link(ob)
 
 
-def _scene_bounds(bpy, Vector):
+def _scene_bounds(sc, Vector):
     xs, ys, zs = [], [], []
-    for o in bpy.data.objects:
+    for o in sc.objects:
         if o.type != "MESH":
             continue
         for c in o.bound_box:
@@ -423,7 +463,7 @@ def _configure_render(bpy, sc, engine: str, samples: int, width: int, height: in
     return device_used
 
 
-def run(input_path: str | Path | None = None, **kwargs) -> dict:
+def run(input_path: str | Path | None = None, *, replace_scene=False, **kwargs) -> dict:
     """In-Blender entry point (for live blender-mcp execute_blender_code calls)."""
     ns = parse_args([])
     ns.input = Path(input_path) if input_path else None
@@ -436,7 +476,11 @@ def run(input_path: str | Path | None = None, **kwargs) -> dict:
             raise ValueError(f"Unknown option {k!r}")
         setattr(ns, k, v)
         raw_argv.append(f"--{k.replace('_', '-')}")
-    return _run_in_blender(ns, raw_argv)
+    return _run_in_blender(ns, raw_argv, live=True, replace_scene=replace_scene)
+
+
+def _blender_command(binary, argv):
+    return [binary, "-b", "--python-exit-code", "1", "--python", str(Path(__file__).resolve()), "--", *argv]
 
 
 def main() -> None:
@@ -448,7 +492,7 @@ def main() -> None:
         if args.input is None:
             raise SystemExit("error: input file is required when running from CLI")
         blender = find_blender()
-        proc = subprocess.run([blender, "-b", "--python", str(Path(__file__).resolve()), "--", *sys.argv[1:]])
+        proc = subprocess.run(_blender_command(blender, sys.argv[1:]))
         sys.exit(proc.returncode)
     else:
         argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []

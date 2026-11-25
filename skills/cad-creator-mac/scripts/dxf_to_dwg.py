@@ -46,12 +46,45 @@ def run_console(console: str, drawing: Path, script: Path, workdir: Path, readon
     return proc.stdout
 
 
+# Leading/trailing newlines separate values from the command echoed by AutoCAD.
+READBACK = r"""(princ (strcat "\n__CAD_INSUNITS=" (itoa (getvar "INSUNITS")) "\n"))
+(princ (strcat "\n__CAD_TOTAL=" (itoa (if (setq _ss (ssget "_X")) (sslength _ss) 0)) "\n"))
+(princ (strcat "\n__CAD_MODEL=" (itoa (if (setq _ss (ssget "_X" '((410 . "Model")))) (sslength _ss) 0)) "\n"))
+(setq _count 0)
+(foreach _p (dictsearch (namedobjdict) "ACAD_LAYOUT") (if (= (car _p) 3) (progn (setq _count (1+ _count)) (princ (strcat "\n__CAD_LAYOUT=" (cdr _p) "\n")))))
+(princ (strcat "\n__CAD_LAYOUT_COUNT=" (itoa _count) "\n"))
+"""
+
+
+def readback(output: str) -> dict:
+    counts = {}
+    for marker, key in (("INSUNITS", "insunits"), ("TOTAL", "total_entities"),
+                        ("MODEL", "model_entities"), ("LAYOUT_COUNT", "layout_count")):
+        match = re.search(rf"^__CAD_{marker}=([0-9]+)$", output, re.MULTILINE)
+        if not match:
+            raise RuntimeError(f"Missing {marker} in AutoCAD readback")
+        counts[key] = int(match[1])
+    layouts = re.findall(r"^__CAD_LAYOUT=([^\r\n]+)$", output, re.MULTILINE)
+    names = {name.casefold() for name in layouts}
+    if "model" not in names or len(names) != counts.pop("layout_count"):
+        raise RuntimeError(f"Incomplete AutoCAD layout readback: {layouts!r}")
+    return dict(counts, layouts=layouts)
+
+
 def dxf_to_dwg(src_dxf: Path, dst_dwg: Path, version: str = "2018", verify: bool = True, timeout: int = 120) -> dict:
     """Convert src_dxf to native DWG atomically using isolated temp staging."""
+    if dst_dwg.suffix.lower() != ".dwg":
+        raise ValueError(f"Expected a .dwg output path: {dst_dwg}")
     src_dxf = src_dxf.resolve()
     dst_dwg = dst_dwg.resolve()
     if not src_dxf.is_file():
         raise FileNotFoundError(f"Input DXF not found: {src_dxf}")
+    if dst_dwg.exists() and src_dxf.samefile(dst_dwg):
+        raise ValueError("DXF input and DWG output must be different files")
+    if dst_dwg.suffix.lower() != ".dwg":
+        raise ValueError(f"Resolved output must be a .dwg file: {dst_dwg}")
+    if dst_dwg.is_dir():
+        raise IsADirectoryError(dst_dwg)
     if version not in DWG_VERSIONS:
         raise ValueError(f"Unsupported DWG version {version!r}; expected one of {sorted(DWG_VERSIONS)}")
 
@@ -64,39 +97,32 @@ def dxf_to_dwg(src_dxf: Path, dst_dwg: Path, version: str = "2018", verify: bool
         tmp_out = tmp_dir / "out.dwg"
         save_scr = tmp_dir / "save.scr"
         shutil.copy2(src_dxf, tmp_in)
-        save_scr.write_text(f'(command "_.SAVEAS" "{version}" "{tmp_out.as_posix()}")\n_.QUIT\n', encoding="utf-8")
+        save_scr.write_text((READBACK if verify else "") + f'(command "_.SAVEAS" "{version}" "{tmp_out.as_posix()}")\n_.QUIT\n', encoding="utf-8")
 
         conv_out = run_console(console, tmp_in, save_scr, tmp_dir, readonly=False, timeout=timeout)
         if not tmp_out.is_file() or tmp_out.stat().st_size == 0:
             raise RuntimeError(f"SAVEAS did not produce DWG:\n{conv_out[-800:]}")
-        magic = tmp_out.read_bytes()[:6]
+        with tmp_out.open("rb") as stream:
+            magic = stream.read(6)
         if not magic.startswith(b"AC10"):
             raise RuntimeError(f"Invalid DWG header {magic!r}")
 
         summary = {"version_magic": magic.decode("ascii", "replace"), "bytes": tmp_out.stat().st_size}
         if verify:
             v_scr = tmp_dir / "verify.scr"
-            v_scr.write_text(
-                '(princ (strcat "\\n__CAD_INSUNITS=" (itoa (getvar "INSUNITS")) "\\n"))\n'
-                '(princ (strcat "__CAD_TOTAL=" (itoa (if (setq _ss (ssget "_X")) (sslength _ss) 0)) "\\n"))\n'
-                '(princ (strcat "__CAD_MODEL=" (itoa (if (setq _ss (ssget "_X" \'((410 . "Model")))) (sslength _ss) 0)) "\\n"))\n'
-                '(foreach _p (dictsearch (namedobjdict) "ACAD_LAYOUT") (if (= (car _p) 3) (princ (strcat "__CAD_LAYOUT=" (cdr _p) "\\n"))))\n'
-                "_.QUIT\n",
-                encoding="utf-8",
-            )
-            v_out = run_console(console, tmp_out, v_scr, tmp_dir, readonly=True, timeout=timeout)
-            m_ins = re.search(r"__CAD_INSUNITS=(\d+)", v_out)
-            m_tot = re.search(r"__CAD_TOTAL=(\d+)", v_out)
-            m_mod = re.search(r"__CAD_MODEL=(\d+)", v_out)
-            if not (m_ins and m_tot and m_mod):
-                raise RuntimeError(f"DWG verification readback failed:\n{v_out[-800:]}")
-            summary["insunits"] = int(m_ins.group(1))
-            summary["total_entities"] = int(m_tot.group(1))
-            summary["model_entities"] = int(m_mod.group(1))
-            summary["layouts"] = [s.strip() for s in re.findall(r"^__CAD_LAYOUT=(.+)$", v_out, re.MULTILINE)]
+            source = readback(conv_out)
+            v_scr.write_text(READBACK + "_.QUIT\n", encoding="utf-8")
+            result = readback(run_console(console, tmp_out, v_scr, tmp_dir, readonly=True, timeout=timeout))
+            if source["insunits"] != result["insunits"] or set(source["layouts"]) != set(result["layouts"]):
+                raise RuntimeError(f"Units or layouts changed: DXF={source!r}, DWG={result!r}")
+            summary.update(result)
 
         dst_dwg.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(tmp_out), str(dst_dwg))
+        # Stage on the destination volume; a failed cross-volume copy leaves the old DWG intact.
+        with tempfile.TemporaryDirectory(dir=dst_dwg.parent, prefix=".cadmac-") as staging:
+            staged = Path(staging) / "delivery.dwg"
+            shutil.move(str(tmp_out), str(staged))
+            os.replace(staged, dst_dwg)
 
     summary["output"] = str(dst_dwg)
     return summary

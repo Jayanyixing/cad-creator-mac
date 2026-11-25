@@ -24,4 +24,4 @@ license: MIT
 2. 从可访问性树定位 `commandPane` 下的 `cmdInput`。确认目标窗口和提示符空闲，原样输入一条命令或完整单行表达式，核对文本与焦点，再按一次 `Return`。空输入框上的 `Return` 可能重复上一条命令。
 3. 简单操作可直接用 AutoLISP。多实体修改按 [批量脚本与失败恢复](references/batch-workflow.md) 先加载助手，再执行本次任务。脚本写入前核对上下文，记录返回结果，恢复临时变量，并将本次操作放入一个撤销组。
 4. 用 `cmdHistory` 或可见提示符核对结果。遇到弹窗、切换文档或结果不明时，刷新窗口状态并先读回已有改动，再决定是否重试。无法聚焦确切图纸时暂停发送命令。
-5. 按 [AutoLISP 与文件操作](references/autocad-operations.md) 保存和验证。重开 DWG/DXF 核对关键坐标、尺寸、空间、图层和原生实体类型。PDF 检查同版实际页面、图幅、比例、字体、线型、线宽和裁切。交付 DWG 时核对重开首屏，打印带尺寸的工程图时按[出图验收](references/gb-drafting-standards.md#建筑改版与出图验收)比对实际标注读数。汇报实际完成的检查与交付文件。
+5. 按 [AutoLISP 与文件操作](references/autocad-operations.md) 保存和验证。重开 DWG/DXF 核对关键坐标、尺寸、空间、图层和原生实体类型。PDF 检查同版实际页面、图幅、比例、字体、线型、线宽和裁切。交付 DWG 时核对重开首屏，打印带尺寸的工程图时按[出图验收](references/gb-drafting-standards.md#建筑改版与出图验收)比对实际标注读数，并在定比例视图量取最终 PDF 的纸面距离。汇报实际完成的检查与交付文件。
