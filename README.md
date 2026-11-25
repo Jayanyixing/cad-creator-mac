@@ -9,8 +9,10 @@
 - **CAD 工作流**提供无界面 DXF 和 AutoCAD for Mac 桌面操作。原生 DWG 编辑保留既有样式、块和外参，亦可创建 AutoCAD 三维实体或使用原生布局打印。
 - **SketchUp MCP 与全套 Blender 管线** 通过本机 Ruby 扩展创建几何、墙体、门窗、群组、材质与场景并保存原生 SKP；支持通过 [blender_render.py](skills/cad-creator-mac/scripts/blender_render.py) 自动导入 SKP 导出模型至 macOS Blender（Apple Silicon Metal Cycles），同时全量内置 [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills) 的 28 个 Blender 5.2+/5.3 子技能（建模、雕刻、UV、PBR 材质、烘焙、几何节点、绑定、动画、布料、毛发、日夜天气、仿真、资产 QA 与引擎导出）与 Live MCP 联动。
 - **GB/T 国标制图内置**：涵盖幅面比例（GB/T 14689 / 14690）、图线与线宽层级（GB/T 17450）、`ByLayer` / 0 层建块铁律、标注三不原则、中文字体统一（防 `???` 与 SHX 混排）、剖视图后壁可见轮廓线规则。
-- **安全批量执行与防踩坑**：提供 [batch-task.lsp](skills/cad-creator-mac/scripts/batch-task.lsp) 事务助手，执行前校验活动文档/空间/命令空闲状态，自动包裹撤销组并恢复临时系统变量（如 `OSMODE`、`CMDECHO`）；内置防串图、防 `_AUDIT`/`_PURGE` 交互挂起、`BACKGROUNDPLOT` 同步等待等实战护栏。
+- **安全批量执行与防踩坑**：提供 [batch-task.lsp](skills/cad-creator-mac/scripts/batch-task.lsp) 事务助手，执行前校验活动文档/空间/命令空闲状态，自动包裹撤销组并恢复临时系统变量（如 `OSMODE`、`CMDECHO`）；内置防串图、防 `_AUDIT`/`_PURGE` 交互挂起、打印完成后回读新 PDF等实战护栏。
 - **L1–L4 分级验收与熔断**：从脚本回执（L1）、实体数量（L2）、重开结构审计（L3）到同版 PDF 视觉交叉审查（L4）闭环把关；同类错误连续 3 次或上下文异常自动熔断排查。
+
+建筑改版可按[出图验收](skills/cad-creator-mac/references/gb-drafting-standards.md#建筑改版与出图验收)核对底模、尺寸与同版图纸；交付时检查 DWG 重开首屏、SKP 分层场景及可编辑构件。
 
 ## 工作方式选择
 

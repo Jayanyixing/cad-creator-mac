@@ -25,7 +25,7 @@ Mac 版 AutoCAD 支持 `getvar`、`ssget`、`entget`、`handent`、`entmake` 和
 ## 另存和出图
 
 - **DXF → DWG 优先走无界面 `AcCoreConsole`**：执行 `python3 <skill_dir>/scripts/dxf_to_dwg.py <输入.dxf> <输出.dwg> [--version 2018]`。脚本会在临时纯 ASCII 目录内中转 `_.SAVEAS` 并隔离 `LogFilePath` 日志，再以 `/readonly` 模式重开校验 `INSUNITS`、实体数与 `ACAD_LAYOUT` 列表，彻底规避中文/空格路径、覆盖确认弹窗、桌面抢焦点与跨目录 `.log` 污染。仅当本机无 `AcCoreConsole` 或已在桌面交互改图时，才在命令栏执行单行 `(command "_.SAVEAS" "2018" "/绝对路径/目标.dwg")`（AutoLISP `command` 会抑制文件对话框；目标已存在需先删或确认覆盖），完成后核对 `cmdHistory`、`file <目标.dwg>` 并关图清理 `.dwl/.dwl2` 与无关 `.log`。
-- 用 `_.PLOT` 打印目标布局或模型，按用户要求核对纸张、方向、范围、比例、页面预设和 CTB/STB；自动化出图前可先记录并将 `BACKGROUNDPLOT` 临时设为 `0`（完成后恢复），防止后台异步打印尚未落盘就读取旧 PDF。检查打印线宽选项与样式是否符合图纸标准。保存后打开同版 PDF，逐项查看裁切、字体一致性、线宽对比、虚线/中心线、标注重叠，以及剖视图中剖切面后方的可见轮廓线（如孔腔后壁上下口与台阶线）是否完整连通。
-- 保存后重新打开目标 DWG/DXF，按要求核对关键几何、实体类型、图层、空间和布局。保留最终交付所需的外参和字体依赖。记录实际路径、验收结果以及本次尚未核实的项目。
+- 用 `_.PLOT` 打印目标布局或模型，按用户要求核对纸张、方向、范围、比例、页面预设和 CTB/STB；打印到本轮可识别的输出路径，等待打印完成并确认新 PDF 可打开。macOS 自动化流程须能在 `BACKGROUNDPLOT` 不可写时完成打印。检查打印线宽选项与样式是否符合图纸标准。保存后打开同版 PDF，逐项查看裁切、字体一致性、线宽对比、虚线/中心线、标注重叠，以及剖视图中剖切面后方的可见轮廓线（如孔腔后壁上下口与台阶线）是否完整连通。
+- 保存后重新打开目标 DWG/DXF，按要求核对关键几何、实体类型、图层、空间和布局。保留最终交付所需的外参和字体依赖。交付 DWG 时，从最终路径在 AutoCAD 中重开，先观察原始首屏，再平移或缩放。布局交付应打开约定布局，看清图框及主要视图；模型空间交付应直接看见目标主体。若只见空白或小点，核对当前空间、保存视图中心和范围，调整纸空间视图时保留布局视口的设计比例，保存后再重开检查。仅做无界面回读时，将实际首屏列为未核实。记录交付路径、实际验收结果及待核事项。
 
 [AutoLISP 实体支持表](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-MAC-AutoLISP-Reference/files/GUID-1197B695-C73C-4B4D-AD5D-8F8EB64FB253.htm) · [AutoCAD for Mac PDF 出图](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-MAC-Core/files/GUID-310657DF-8614-4125-B2E7-1FBF8B67333F.htm)

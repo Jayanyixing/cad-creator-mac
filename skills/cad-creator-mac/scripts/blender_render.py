@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Headless SketchUp-export/scene importer and renderer for macOS Blender (Metal Cycles)."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import math
